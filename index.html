@@ -1,0 +1,1640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Quality Function Deployment — Chapter 23</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1410;
+    --paper: #f4ede2;
+    --paper-2: #ebe1d1;
+    --paper-3: #e0d5be;
+    --accent: #c2410c;
+    --accent-2: #0d4f4a;
+    --gold: #b8862d;
+    --line: #2a201a;
+    --line-soft: #6b5d4f;
+    --muted: #6b5d4f;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Fraunces', Georgia, serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    background-image:
+      radial-gradient(circle at 12% 18%, rgba(194, 65, 12, 0.06), transparent 40%),
+      radial-gradient(circle at 88% 82%, rgba(13, 79, 74, 0.06), transparent 40%);
+  }
+  .stage { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+  .slide {
+    position: absolute; inset: 0;
+    padding: 4rem 5rem;
+    display: flex; flex-direction: column; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.5s ease;
+    overflow-y: auto;
+  }
+  .slide.active { opacity: 1; pointer-events: auto; }
+  .slide.active .reveal { animation: fadeUp 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+  .slide.active .reveal:nth-child(1) { animation-delay: 0.05s; }
+  .slide.active .reveal:nth-child(2) { animation-delay: 0.18s; }
+  .slide.active .reveal:nth-child(3) { animation-delay: 0.31s; }
+  .slide.active .reveal:nth-child(4) { animation-delay: 0.44s; }
+  .slide.active .reveal:nth-child(5) { animation-delay: 0.57s; }
+  .slide.active .reveal:nth-child(6) { animation-delay: 0.70s; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(18px);} to { opacity: 1; transform: translateY(0);} }
+
+  .chapter-mark {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 1.5rem;
+    display: flex; align-items: center; gap: 1rem;
+  }
+  .chapter-mark::after { content: ''; height: 1px; flex: 1; background: linear-gradient(to right, var(--accent), transparent); max-width: 200px; }
+  h1.title { font-weight: 900; font-size: clamp(3rem, 6.5vw, 6rem); line-height: 0.92; letter-spacing: -0.035em; margin-bottom: 1.5rem; }
+  h1.title em { font-style: italic; font-weight: 300; color: var(--accent); }
+  h2.subtitle { font-size: clamp(1.5rem, 2.8vw, 2.4rem); font-weight: 300; font-style: italic; color: var(--muted); line-height: 1.2; margin-bottom: 2rem; max-width: 60ch; }
+  h3.section-title { font-size: clamp(2rem, 4vw, 3.5rem); font-weight: 800; line-height: 1; letter-spacing: -0.025em; margin-bottom: 1.2rem; }
+  .lede { font-size: clamp(1.05rem, 1.4vw, 1.3rem); line-height: 1.55; max-width: 65ch; color: var(--ink); }
+  .body-text { font-size: 1.05rem; line-height: 1.65; color: var(--ink); max-width: 65ch; }
+  .caption { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
+  .slide-num { position: absolute; top: 4rem; right: 5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--muted); letter-spacing: 0.18em; }
+
+  /* TITLE SLIDE */
+  .title-slide { background: linear-gradient(135deg, var(--paper) 0%, var(--paper-2) 100%); }
+  .title-slide .stamp {
+    position: absolute; top: 4rem; right: 5rem;
+    width: 110px; height: 110px;
+    border: 2px solid var(--accent); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    transform: rotate(8deg); color: var(--accent);
+    font-family: 'JetBrains Mono', monospace; font-size: 0.65rem;
+    letter-spacing: 0.15em; text-align: center; line-height: 1.3;
+  }
+  .title-slide .stamp::before { content: ''; position: absolute; inset: 6px; border: 1px dashed var(--accent); border-radius: 50%; }
+  .title-slide .meta { position: absolute; bottom: 4rem; left: 5rem; display: flex; gap: 3rem; }
+  .title-slide .meta div span { display: block; font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.3rem; }
+  .title-slide .meta div strong { font-family: 'Fraunces', serif; font-weight: 600; font-size: 1rem; }
+  .corner-mark { position: absolute; top: 4rem; left: 4rem; width: 30px; height: 30px; border-top: 2px solid var(--accent); border-left: 2px solid var(--accent); }
+  .corner-mark.br { top: auto; left: auto; bottom: 4rem; right: 4rem; border-top: none; border-left: none; border-bottom: 2px solid var(--accent); border-right: 2px solid var(--accent); }
+
+  /* LAYOUTS */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
+  .two-col-asym { display: grid; grid-template-columns: 1.2fr 1fr; gap: 3.5rem; align-items: start; }
+
+  .definition { border-left: 3px solid var(--accent); padding: 0.5rem 0 0.5rem 1.5rem; margin: 1.5rem 0; font-style: italic; font-size: 1.15rem; line-height: 1.55; }
+
+  .steps { list-style: none; counter-reset: step; display: grid; gap: 1rem; }
+  .step { counter-increment: step; display: grid; grid-template-columns: auto 1fr; gap: 1.2rem; align-items: start; padding: 1rem 0; border-bottom: 1px solid rgba(26,20,16,0.1); }
+  .step:last-child { border-bottom: none; }
+  .step::before { content: counter(step, decimal-leading-zero); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--accent); font-weight: 700; background: var(--paper-2); padding: 0.4rem 0.6rem; border-radius: 2px; min-width: 3rem; text-align: center; }
+  .step h4 { font-size: 1.15rem; font-weight: 700; margin-bottom: 0.3rem; }
+  .step p { font-size: 0.95rem; color: var(--muted); line-height: 1.5; }
+
+  /* CASCADE */
+  .cascade { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-top: 2rem; }
+  .cascade-card { position: relative; background: var(--paper-2); border: 1.5px solid var(--line); padding: 1.5rem 1rem 1rem; text-align: center; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+  .cascade-card:hover { transform: translateY(-4px); box-shadow: 6px 6px 0 var(--accent); }
+  .cascade-card::before { content: ''; position: absolute; top: -16px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 24px solid transparent; border-right: 24px solid transparent; border-bottom: 16px solid var(--line); }
+  .cascade-card::after { content: ''; position: absolute; top: -13px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 22px solid transparent; border-right: 22px solid transparent; border-bottom: 14px solid var(--paper-2); }
+  .cascade-num { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--accent); letter-spacing: 0.15em; margin-bottom: 0.5rem; }
+  .cascade-card h4 { font-size: 1rem; font-weight: 700; line-height: 1.2; }
+
+  /* COMPARE TABLE */
+  .compare-table { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; margin-top: 1rem; }
+  .compare-table th { background: var(--ink); color: var(--paper); padding: 0.8rem; text-align: left; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; font-size: 0.7rem; }
+  .compare-table td { padding: 0.8rem; border-bottom: 1px solid rgba(26,20,16,0.15); font-family: 'Fraunces', serif; font-size: 0.95rem; }
+  .compare-table td:first-child { font-family: 'JetBrains Mono', monospace; font-size: 1.2rem; font-weight: 700; color: var(--accent); width: 60px; }
+
+  /* HOQ INTRO (slide 4) — clickable section diagram */
+  .hoq-wrap { display: grid; grid-template-columns: 1fr 320px; gap: 2rem; height: 100%; }
+  .hoq-info { background: var(--paper-2); border: 1.5px solid var(--line); padding: 1.5rem; overflow-y: auto; max-height: 75vh; }
+  .hoq-info h4 { font-size: 1.3rem; font-weight: 800; margin-bottom: 0.5rem; color: var(--accent); }
+  .hoq-info .info-tag { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; letter-spacing: 0.18em; color: var(--muted); margin-bottom: 1rem; text-transform: uppercase; }
+  .hoq-info p { font-size: 0.95rem; line-height: 1.55; margin-bottom: 0.8rem; }
+  .hoq-svg-wrap { display: flex; align-items: center; justify-content: center; }
+  .hoq-svg { width: 100%; max-height: 80vh; }
+  .hoq-section { cursor: pointer; transition: opacity 0.3s ease, fill 0.3s ease; }
+  .hoq-section:hover { opacity: 0.85; }
+
+  /* VOICE QUOTE */
+  .voice-quote { font-style: italic; font-weight: 300; font-size: 2rem; line-height: 1.3; border-left: 4px solid var(--accent); padding-left: 2rem; margin: 2rem 0; max-width: 60ch; }
+  .voice-quote::before { content: '\201C'; font-size: 4rem; color: var(--accent); line-height: 0; vertical-align: -0.4em; margin-right: 0.2rem; }
+
+  /* METHODS GRID */
+  .methods-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-top: 1rem; }
+  .method-card { background: var(--paper-2); border: 1px solid rgba(26,20,16,0.15); padding: 1rem 1.2rem; border-left: 3px solid var(--gold); transition: all 0.3s ease; }
+  .method-card:hover { border-left-color: var(--accent); transform: translateX(4px); }
+  .method-card h5 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.3rem; }
+  .method-card p { font-size: 0.82rem; color: var(--muted); line-height: 1.45; }
+
+  /* SCORE CHIPS */
+  .scores { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.8rem; margin-top: 1rem; }
+  .score-chip { background: var(--paper-2); border: 1.5px solid var(--line); padding: 1rem; text-align: center; }
+  .score-chip .num { font-weight: 900; font-size: 2.5rem; line-height: 1; color: var(--accent); }
+  .score-chip .label { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-top: 0.5rem; }
+
+  /* ============= INTERACTIVE HOUSE OF QUALITY ============= */
+  .hoq-example-slide {
+    padding: 2rem 2.5rem 6rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    grid-template-rows: auto 1fr;
+    gap: 1rem 1.5rem;
+    align-content: start;
+    align-items: start;
+    overflow-y: auto;
+  }
+  .hoq-example-slide .slide-num { right: 2.5rem; top: 2rem; }
+  .hoq-header { grid-column: 1 / -1; }
+  .hoq-header h3 { font-size: clamp(1.6rem, 2.6vw, 2.2rem); margin-bottom: 0.4rem; }
+  .hoq-header p { font-size: 0.88rem; line-height: 1.5; max-width: 75ch; color: var(--muted); }
+  .hoq-stage-wrap {
+    grid-column: 1;
+    min-width: 0;
+    max-width: 100%;
+    overflow: auto;
+    padding-bottom: 4rem;
+  }
+  .hoq-readout {
+    grid-column: 2;
+    background: var(--paper-2);
+    border: 1.5px solid var(--line);
+    padding: 1.3rem;
+    align-self: start;
+    min-height: 280px;
+    min-width: 0;
+    width: 100%;
+    position: sticky;
+    top: 0.5rem;
+    max-height: calc(100vh - 10rem);
+    overflow-y: auto;
+  }
+  .readout-tag { font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.5rem; }
+  .readout h4 { font-size: 1.25rem; font-weight: 800; line-height: 1.15; margin-bottom: 0.6rem; letter-spacing: -0.01em; }
+  .readout-num { font-weight: 900; font-size: 3.5rem; line-height: 1; color: var(--accent); border-left: 4px solid var(--accent); padding-left: 0.8rem; margin: 0.6rem 0; display: flex; align-items: baseline; gap: 0.6rem; }
+  .readout-num small { font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+  .readout-pair { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; background: var(--paper); padding: 0.5rem 0.6rem; margin: 0.3rem 0 0.6rem; border-left: 2px solid var(--line); line-height: 1.4; }
+  .readout p { font-size: 0.85rem; line-height: 1.5; }
+  .readout-live { margin-top: 0.9rem; padding-top: 0.8rem; border-top: 1px solid rgba(26,20,16,0.18); }
+  .readout-live h5 { font-size: 0.8rem; margin-bottom: 0.45rem; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .live-row { display: flex; align-items: center; gap: 0.5rem; margin: 0.25rem 0; font-size: 0.78rem; line-height: 1.25; }
+  .live-row strong { min-width: 2.2rem; font-family: 'JetBrains Mono', monospace; color: var(--accent); }
+  .live-bar { height: 6px; min-width: 12px; background: var(--accent); opacity: 0.75; border-radius: 99px; }
+
+  /* HOQ SVG canvas */
+  .hoq-canvas {
+    display: block;
+    width: min(100%, 980px);
+    max-width: 980px;
+    height: auto;
+    max-height: none;
+    min-width: 720px;
+  }
+  .hoq-canvas .cell-rect { fill: var(--paper); stroke: var(--line); stroke-width: 1; cursor: pointer; transition: fill 0.15s ease; }
+  .hoq-canvas .cell-rect:hover { fill: rgba(194, 65, 12, 0.2); }
+  .hoq-canvas .cell-rect.active { fill: var(--accent); }
+  .hoq-canvas .cell-text { font-family: 'JetBrains Mono', monospace; font-size: 11px; text-anchor: middle; dominant-baseline: middle; fill: var(--ink); pointer-events: none; user-select: none; }
+  .hoq-canvas .cell-rect.active + .cell-text, .hoq-canvas g.active .cell-text { fill: var(--paper); font-weight: 700; }
+  .hoq-canvas .v-1 { fill: #f0e0c8; }
+  .hoq-canvas .v-3 { fill: #e0a878; }
+  .hoq-canvas .v-5 { fill: #c2410c; }
+  .hoq-canvas g.cell.active .cell-rect { stroke: var(--accent-2); stroke-width: 2.4; }
+  .hoq-canvas g.cell.active .cell-text { font-weight: 800; }
+  .hoq-canvas .label-text { font-family: 'Fraunces', serif; font-size: 11px; fill: var(--ink); }
+  .hoq-canvas .label-bg { fill: var(--paper-2); stroke: var(--line); stroke-width: 1; }
+  .hoq-canvas .imp-bg { fill: var(--gold); }
+  .hoq-canvas .imp-text-label { fill: var(--paper); font-weight: 600; font-size: 8.8px; }
+  .hoq-canvas .header-bg { fill: var(--ink); }
+  .hoq-canvas .header-text { fill: var(--paper); font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; }
+  .hoq-canvas .step-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; fill: var(--accent); font-weight: 700; letter-spacing: 0.1em; }
+  .hoq-canvas .brace { fill: none; stroke: var(--accent); stroke-width: 1; }
+
+  .hoq-legend { display: flex; gap: 1.2rem; align-items: center; font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--muted); padding: 0.6rem 0; flex-wrap: wrap; }
+  .hoq-legend strong { font-family: 'Fraunces', serif; font-weight: 700; color: var(--ink); font-size: 0.8rem; }
+  .hoq-legend .dot { display: inline-block; width: 12px; height: 12px; margin-right: 0.4rem; vertical-align: middle; border-radius: 2px; border: 1px solid var(--line); }
+
+  /* FINAL SLIDE */
+  .final-slide { background: var(--ink); color: var(--paper); }
+  .final-slide h1 { color: var(--paper); }
+  .final-slide h1 em { color: var(--gold); }
+  .final-slide .lede { color: var(--paper-2); }
+  .final-slide .chapter-mark { color: var(--gold); }
+  .final-slide .chapter-mark::after { background: linear-gradient(to right, var(--gold), transparent); }
+
+  /* NAVIGATION */
+  .nav { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 1rem; background: rgba(26, 20, 16, 0.92); backdrop-filter: blur(10px); padding: 0.6rem 1rem; border-radius: 100px; z-index: 100; box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+  .nav button { background: transparent; border: none; color: var(--paper); font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; cursor: pointer; padding: 0.4rem 0.8rem; border-radius: 100px; transition: background 0.2s; letter-spacing: 0.1em; }
+  .nav button:hover { background: rgba(255,255,255,0.1); }
+  .nav button:disabled { opacity: 0.3; cursor: not-allowed; }
+  .nav-counter { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--paper); padding: 0 0.5rem; letter-spacing: 0.1em; }
+  .nav-counter span:first-child { color: var(--accent); font-weight: 700; }
+  .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); transition: width 0.4s ease; z-index: 99; box-shadow: 0 0 12px var(--accent); }
+  .hint { position: fixed; top: 1.5rem; right: 1.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; z-index: 100; opacity: 0.6; }
+  .key { display: inline-block; padding: 2px 6px; border: 1px solid var(--muted); border-radius: 3px; margin: 0 2px; }
+
+  @media (max-width: 1100px) {
+    .hoq-example-slide { grid-template-columns: 1fr; }
+    .hoq-readout {
+      grid-column: 1;
+      position: static;
+      max-height: none;
+    }
+  }
+  @media (max-width: 900px) {
+    .slide { padding: 2rem 1.5rem; }
+    .two-col, .two-col-asym { grid-template-columns: 1fr; gap: 1.5rem; }
+    .cascade { grid-template-columns: 1fr 1fr; }
+    .hoq-wrap { grid-template-columns: 1fr; }
+    h1.title { font-size: 2.5rem; }
+  }
+
+  /* ============= CLEAN CORPORATE THEME OVERRIDE — v10 =============
+     Built as a safe override layer on top of the working v8 file.
+     It changes colors/fonts/style without changing the HOQ layout or JS logic. */
+  :root {
+    --ink: #101014;
+    --paper: #f3f5f7;
+    --paper-2: #e9edf1;
+    --paper-3: #d9e1e8;
+    --accent: #1e668b;
+    --accent-2: #164a66;
+    --gold: #477fa3;
+    --line: #161616;
+    --line-soft: #6f7882;
+    --muted: #59636e;
+  }
+
+  html, body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Inter', Arial, sans-serif;
+  }
+
+  body {
+    background:
+      linear-gradient(135deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 26%),
+      linear-gradient(135deg, transparent 0%, transparent 58%, rgba(255,255,255,.34) 58%, rgba(255,255,255,.34) 70%, transparent 70%),
+      linear-gradient(135deg, transparent 0%, transparent 78%, rgba(255,255,255,.20) 78%, rgba(255,255,255,.20) 88%, transparent 88%),
+      var(--paper);
+  }
+
+  .slide {
+    background:
+      linear-gradient(135deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 26%),
+      linear-gradient(135deg, transparent 0%, transparent 58%, rgba(255,255,255,.34) 58%, rgba(255,255,255,.34) 70%, transparent 70%),
+      linear-gradient(135deg, transparent 0%, transparent 78%, rgba(255,255,255,.20) 78%, rgba(255,255,255,.20) 88%, transparent 88%),
+      var(--paper);
+  }
+
+  h1.title,
+  h3.section-title,
+  .cascade-card h4,
+  .step h4,
+  .readout h4 {
+    font-family: 'Montserrat', Arial, sans-serif;
+  }
+
+  h1.title {
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: -0.045em;
+  }
+
+  h1.title em {
+    color: var(--accent);
+    font-style: normal;
+    font-weight: 900;
+  }
+
+  h2.subtitle {
+    font-family: 'Inter', Arial, sans-serif;
+    font-style: normal;
+    font-weight: 500;
+    color: var(--muted);
+  }
+
+  h3.section-title {
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: -0.035em;
+  }
+
+  .chapter-mark {
+    color: var(--accent);
+  }
+
+  .chapter-mark::after {
+    height: 2px;
+    background: linear-gradient(to right, var(--accent), transparent);
+  }
+
+  .title-slide {
+    background:
+      linear-gradient(135deg, rgba(255,255,255,.65) 0%, rgba(255,255,255,0) 26%),
+      linear-gradient(135deg, transparent 0%, transparent 58%, rgba(255,255,255,.36) 58%, rgba(255,255,255,.36) 70%, transparent 70%),
+      linear-gradient(135deg, transparent 0%, transparent 78%, rgba(255,255,255,.22) 78%, rgba(255,255,255,.22) 88%, transparent 88%),
+      var(--paper);
+  }
+
+  .title-slide .stamp {
+    border-radius: 16px;
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .title-slide .stamp::before {
+    border-radius: 11px;
+    border-color: var(--accent);
+  }
+
+  .corner-mark {
+    border-color: var(--accent);
+  }
+
+  .definition {
+    border-left-color: var(--accent);
+    background: rgba(255,255,255,.55);
+    padding: 1rem 1.3rem;
+  }
+
+  .cascade-card,
+  .method-card,
+  .score-chip,
+  .hoq-info,
+  .hoq-readout {
+    background: rgba(255,255,255,.78);
+    border: 1px solid rgba(16,16,20,.14);
+    box-shadow: 0 12px 30px rgba(0,0,0,.055);
+  }
+
+  .cascade-card:hover {
+    box-shadow: 0 16px 32px rgba(30,102,139,.18);
+  }
+
+  .compare-table th,
+  .hoq-canvas .header-bg {
+    background: #050505;
+    fill: #050505;
+  }
+
+  .compare-table th {
+    color: #ffffff;
+    font-family: 'Montserrat', Arial, sans-serif;
+    font-weight: 700;
+  }
+
+  .compare-table td,
+  .body-text,
+  .lede,
+  .step p,
+  .method-card p {
+    font-family: 'Inter', Arial, sans-serif;
+  }
+
+  .score-chip .num,
+  .live-row strong,
+  .readout-num,
+  .compare-table td:first-child {
+    color: var(--accent);
+  }
+
+  .live-bar {
+    background: var(--accent);
+  }
+
+  .nav {
+    background: rgba(5,5,5,.94);
+    box-shadow: 0 14px 34px rgba(0,0,0,.22);
+  }
+
+  .nav button,
+  .nav-counter {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .progress {
+    height: 4px;
+    background: var(--accent);
+    box-shadow: 0 0 12px rgba(30,102,139,.45);
+  }
+
+  /* HOQ palette and fonts */
+  .hoq-canvas text,
+  .hoq-canvas .label-text {
+    font-family: 'Montserrat', Arial, sans-serif !important;
+  }
+
+  .hoq-canvas .cell-text {
+    font-family: 'JetBrains Mono', monospace !important;
+  }
+
+  .hoq-canvas .cell-rect {
+    stroke: var(--line);
+  }
+
+  .hoq-canvas .cell-rect:hover {
+    fill: rgba(30,102,139,.18);
+  }
+
+  .hoq-canvas .v-1 { fill: #e7edf3; }
+  .hoq-canvas .v-3 { fill: #9fb9cd; }
+  .hoq-canvas .v-5 { fill: #1e668b; }
+
+  .hoq-canvas .cell-rect.active {
+    fill: var(--accent-2);
+  }
+
+  .hoq-canvas g.cell.active .cell-rect {
+    stroke: var(--accent-2);
+    stroke-width: 2.4;
+  }
+
+  .hoq-canvas .label-bg {
+    fill: #e9edf1;
+    stroke: var(--line);
+  }
+
+  .hoq-canvas .imp-bg {
+    fill: var(--accent);
+  }
+
+  .hoq-canvas .imp-text-label,
+  .hoq-canvas .header-text {
+    fill: #ffffff;
+    font-family: 'Montserrat', Arial, sans-serif !important;
+    font-weight: 800;
+  }
+
+  .hoq-canvas .step-label,
+  .readout-tag,
+  .caption,
+  .chapter-mark {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Keep the final slide stable while matching the black corporate reference */
+  .final-slide {
+    background:
+      linear-gradient(transparent 0, transparent 31%, #050505 31%, #050505 69%, transparent 69%),
+      linear-gradient(135deg, rgba(255,255,255,.58) 0%, rgba(255,255,255,0) 28%),
+      linear-gradient(135deg, transparent 0%, transparent 58%, rgba(255,255,255,.36) 58%, rgba(255,255,255,.36) 72%, transparent 72%),
+      var(--paper);
+    color: #ffffff;
+  }
+
+  .final-slide h1,
+  .final-slide h1 em {
+    color: #ffffff;
+  }
+
+  .final-slide .lede,
+  .final-slide .body-text {
+    color: rgba(255,255,255,.88);
+  }
+
+  .final-slide .chapter-mark {
+    color: var(--ink);
+  }
+
+
+
+  /* ===== v11 targeted fixes ===== */
+  .hoq-wrap {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 2.5rem;
+    align-items: center;
+  }
+  .hoq-info {
+    background: rgba(255,255,255,.88);
+    min-height: 420px;
+  }
+  .hoq-info h4 {
+    font-family: 'Montserrat', Arial, sans-serif;
+    font-weight: 800;
+    line-height: 1.05;
+  }
+  .hoq-info p {
+    font-family: 'Inter', Arial, sans-serif;
+  }
+  .hoq-legend {
+    margin-top: 0.65rem;
+    gap: 1.5rem;
+  }
+  .hoq-legend strong {
+    font-family: 'Montserrat', Arial, sans-serif;
+    font-size: 0.92rem;
+  }
+  .hoq-legend .dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+  }
+  .hoq-legend div {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+  }
+
+  .final-slide {
+    display: block;
+    padding: 0;
+    overflow: hidden;
+    color: var(--ink);
+    background:
+      linear-gradient(135deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 26%),
+      linear-gradient(135deg, transparent 0%, transparent 58%, rgba(255,255,255,.34) 58%, rgba(255,255,255,.34) 70%, transparent 70%),
+      linear-gradient(135deg, transparent 0%, transparent 78%, rgba(255,255,255,.20) 78%, rgba(255,255,255,.20) 88%, transparent 88%),
+      var(--paper);
+  }
+  .final-slide::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 31%;
+    height: 38%;
+    background: #050505;
+    z-index: 0;
+  }
+  .final-slide .reveal { position: absolute; z-index: 1; }
+  .final-slide > div:nth-of-type(1) { top: 9rem; left: 5.5rem; }
+  .final-slide > div:nth-of-type(2) { left: 5.5rem; top: 35%; max-width: 900px; }
+  .final-slide > div:nth-of-type(2) .title {
+    margin: 0;
+    color: #ffffff;
+    font-size: clamp(4rem, 7vw, 5.6rem);
+    line-height: 0.92;
+    max-width: 900px;
+    text-transform: uppercase;
+  }
+  .final-slide > div:nth-of-type(2) .title em { color: #ffffff; }
+  .final-slide > div:nth-of-type(3) { left: 5.5rem; top: 61%; max-width: 980px; }
+  .final-slide > div:nth-of-type(3) .lede {
+    margin: 0;
+    max-width: 980px;
+    color: #ffffff;
+    font-size: 1.18rem;
+    line-height: 1.5;
+  }
+  .final-slide > div:nth-of-type(4) {
+    left: 5.5rem;
+    right: 5.5rem;
+    bottom: 4.2rem;
+    display: flex;
+    gap: 4.5rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    color: var(--muted) !important;
+  }
+  .final-slide > div:nth-of-type(4) > div { min-width: 180px; }
+  .final-slide > div:nth-of-type(4) > div > div:first-child {
+    color: var(--accent) !important;
+    margin-bottom: 0.45rem !important;
+  }
+  .final-slide .chapter-mark {
+    color: var(--ink);
+    margin-bottom: 0;
+  }
+  .final-slide .chapter-mark::after {
+    background: linear-gradient(to right, var(--accent), transparent);
+  }
+
+  @media (max-width: 1200px) {
+    .hoq-wrap { grid-template-columns: 1fr 320px; }
+    .final-slide > div:nth-of-type(2) { top: 36%; max-width: 780px; }
+    .final-slide > div:nth-of-type(3) { top: 63%; max-width: 840px; }
+  }
+
+
+  /* ===== v12 slide 4 corporate color correction ===== */
+  .hoq-svg .hoq-section {
+    fill: #e9edf1;
+    stroke: #161616;
+  }
+  .hoq-svg .hoq-section[data-section="4"] { fill: #f3f5f7; }
+  .hoq-svg .hoq-section:hover { fill: #d9e6ef; opacity: 1; }
+  .hoq-svg .hoq-section.is-selected { fill: #1e668b !important; }
+  .hoq-svg text { font-family: 'Montserrat', Arial, sans-serif !important; fill: #101014; }
+  .hoq-svg text[font-family*="JetBrains"] { font-family: 'JetBrains Mono', monospace !important; fill: #59636e; }
+  .hoq-info h4 { color: #1e668b; }
+  .hoq-info .info-tag { color: #59636e; }
+
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="hint">Use <span class="key">←</span><span class="key">→</span> to navigate</div>
+
+<div class="stage" id="stage">
+
+  <!-- 1: TITLE -->
+  <section class="slide title-slide active" data-slide="1">
+    <div class="corner-mark"></div><div class="corner-mark br"></div>
+    <div class="stamp">CHAPTER<br>23.3<br>QFD</div>
+    <div class="reveal"><div class="chapter-mark">Section 23.3 · Product Design</div></div>
+    <div class="reveal"><h1 class="title">Quality Function<br><em>Deployment.</em></h1></div>
+    <div class="reveal"><h2 class="subtitle">A systematic procedure for translating the voice of the customer into product features, processes, and quality.</h2></div>
+    <div class="meta reveal">
+      <div><span>Origin</span><strong>Japan, mid-1960s</strong></div>
+      <div><span>Domain</span><strong>Product Design</strong></div>
+      <div><span>Method</span><strong>Cascading Matrices</strong></div>
+    </div>
+  </section>
+
+  <!-- 2: WHAT IS QFD -->
+  <section class="slide" data-slide="2">
+    <div class="slide-num">02 / 10</div>
+    <div class="reveal"><div class="chapter-mark">01 · The Big Idea</div></div>
+    <div class="two-col-asym">
+      <div>
+        <div class="reveal"><h3 class="section-title">It sounds like a<br>quality technique.</h3></div>
+        <div class="reveal"><p class="lede" style="margin-bottom: 1.5rem;">It isn't — not really. The scope of QFD includes quality, but its <strong>principal focus is product design</strong>.</p></div>
+        <div class="reveal"><p class="body-text">The objective: design products that will <em>satisfy or exceed</em> customer requirements. Most projects share that goal, but their approach is informal and unsystematic. QFD replaces guesswork with a formal, structured method.</p></div>
+      </div>
+      <div class="reveal">
+        <div class="definition">Quality function deployment is a systematic procedure for defining customer desires and requirements and interpreting them in terms of product features, process requirements, and quality characteristics.</div>
+        <p class="caption">— Chapter 23.3</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3: CASCADE -->
+  <section class="slide" data-slide="3">
+    <div class="slide-num">03 / 10</div>
+    <div class="reveal"><div class="chapter-mark">02 · The Cascade</div></div>
+    <div class="reveal"><h3 class="section-title">Four matrices,<br>one translation.</h3></div>
+    <div class="reveal"><p class="lede">A series of interconnected matrices establish the relationships between customer needs and the technical features of a new product. Each matrix's outputs become the next matrix's inputs.</p></div>
+    <div class="cascade reveal">
+      <div class="cascade-card"><div class="cascade-num">PHASE 01</div><h4>Customer Requirements<br>→ Technical Requirements</h4></div>
+      <div class="cascade-card"><div class="cascade-num">PHASE 02</div><h4>Technical Requirements<br>→ Component Characteristics</h4></div>
+      <div class="cascade-card"><div class="cascade-num">PHASE 03</div><h4>Component Characteristics<br>→ Process Requirements</h4></div>
+      <div class="cascade-card"><div class="cascade-num">PHASE 04</div><h4>Process Requirements<br>→ Quality Procedures</h4></div>
+    </div>
+    <div class="reveal" style="margin-top: 2rem;"><p class="caption">QFD scales: as few as one matrix, or as many as thirty.</p></div>
+  </section>
+
+  <!-- 4: ANATOMY -->
+  <section class="slide" data-slide="4">
+    <div class="slide-num">04 / 10</div>
+    <div class="reveal"><div class="chapter-mark">03 · Anatomy</div></div>
+    <div class="reveal"><h3 class="section-title">The House of Quality.</h3></div>
+    <div class="reveal"><p class="lede" style="margin-bottom: 1rem;">Each QFD matrix has six sections. The starting matrix is called the <em>house of quality</em> because of its shape. <strong>Click any section</strong> to inspect it.</p></div>
+
+    <div class="hoq-wrap reveal">
+      <div class="hoq-svg-wrap">
+        <svg class="hoq-svg" viewBox="0 0 700 600" xmlns="http://www.w3.org/2000/svg">
+          <polygon class="hoq-section" data-section="3" points="200,60 500,60 350,10" fill="#e9edf1" stroke="#161616" stroke-width="2" />
+          <text x="350" y="40" text-anchor="middle" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="18" fill="#101014">Section 3</text>
+          <text x="350" y="56" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="#59636e">Technical correlations</text>
+          <rect class="hoq-section" data-section="2" x="200" y="60" width="300" height="100" fill="#e9edf1" stroke="#161616" stroke-width="2" />
+          <text x="350" y="105" text-anchor="middle" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="18" fill="#101014">Section 2</text>
+          <text x="350" y="125" text-anchor="middle" font-family="Montserrat, Arial, sans-serif" font-size="14" fill="#101014">Output technical</text>
+          <text x="350" y="143" text-anchor="middle" font-family="Montserrat, Arial, sans-serif" font-size="14" fill="#101014">requirements</text>
+          <line x1="500" y1="110" x2="600" y2="110" stroke="#c2410c" stroke-width="2.5" />
+          <polygon points="600,110 590,105 590,115" fill="#1e668b" />
+          <text x="550" y="100" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#1e668b" font-weight="700">OUTPUT</text>
+          <rect class="hoq-section" data-section="1" x="50" y="160" width="150" height="280" fill="#e9edf1" stroke="#161616" stroke-width="2" />
+          <text x="125" y="280" text-anchor="middle" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="18" fill="#101014">Section 1</text>
+          <text x="125" y="305" text-anchor="middle" font-family="Montserrat, Arial, sans-serif" font-size="14" fill="#101014">Input</text>
+          <text x="125" y="323" text-anchor="middle" font-family="Montserrat, Arial, sans-serif" font-size="14" fill="#101014">requirements</text>
+          <line x1="0" y1="300" x2="50" y2="300" stroke="#c2410c" stroke-width="2.5" />
+          <polygon points="50,300 40,295 40,305" fill="#1e668b" />
+          <text x="25" y="290" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#1e668b" font-weight="700">IN</text>
+          <rect class="hoq-section" data-section="4" x="200" y="160" width="300" height="280" fill="#f3f5f7" stroke="#161616" stroke-width="2" />
+          <text x="350" y="290" text-anchor="middle" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="20" fill="#101014">Section 4</text>
+          <text x="350" y="315" text-anchor="middle" font-family="Montserrat, Arial, sans-serif" font-size="14" fill="#101014">Relationship</text>
+          <text x="350" y="333" text-anchor="middle" font-family="Montserrat, Arial, sans-serif" font-size="14" fill="#101014">matrix</text>
+          <rect class="hoq-section" data-section="5" x="500" y="160" width="150" height="280" fill="#e9edf1" stroke="#161616" stroke-width="2" />
+          <text x="575" y="280" text-anchor="middle" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="18" fill="#101014">Section 5</text>
+          <text x="575" y="305" text-anchor="middle" font-family="Montserrat, Arial, sans-serif" font-size="14" fill="#101014">Comparative</text>
+          <text x="575" y="323" text-anchor="middle" font-family="Montserrat, Arial, sans-serif" font-size="14" fill="#101014">evaluation</text>
+          <text x="575" y="341" text-anchor="middle" font-family="Montserrat, Arial, sans-serif" font-size="14" fill="#101014">of inputs</text>
+          <rect class="hoq-section" data-section="6" x="200" y="440" width="300" height="100" fill="#e9edf1" stroke="#161616" stroke-width="2" />
+          <text x="350" y="478" text-anchor="middle" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="18" fill="#101014">Section 6</text>
+          <text x="350" y="500" text-anchor="middle" font-family="Montserrat, Arial, sans-serif" font-size="14" fill="#101014">Comparative evaluation</text>
+          <text x="350" y="518" text-anchor="middle" font-family="Montserrat, Arial, sans-serif" font-size="14" fill="#101014">of output requirements</text>
+        </svg>
+      </div>
+      <div class="hoq-info" id="hoq-info">
+        <div class="info-tag">Click a section to explore</div>
+        <h4>The Six Sections</h4>
+        <p>A house-shaped diagram. The roof captures relationships <em>between</em> outputs. The walls hold inputs and outputs. The floor and right wing hold competitive evaluations. The center binds it all together.</p>
+        <p style="margin-top: 1rem; color: var(--muted); font-size: 0.85rem;"><strong>Tip:</strong> The roof (Section 3) is what gives the matrix its house-like silhouette.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5: VOICE OF THE CUSTOMER -->
+  <section class="slide" data-slide="5">
+    <div class="slide-num">05 / 10</div>
+    <div class="reveal"><div class="chapter-mark">04 · Step 1 — Listening</div></div>
+    <div class="two-col">
+      <div>
+        <div class="reveal"><h3 class="section-title">The Voice of the Customer.</h3></div>
+        <div class="reveal"><p class="voice-quote">Capturing the customer's needs, desires, and requirements is the most critical part of the analysis.</p></div>
+        <div class="reveal"><p class="body-text">No single channel suffices. In practice more than one method is needed to map the full scope of what customers actually want.</p></div>
+      </div>
+      <div class="reveal">
+        <p class="caption" style="margin-bottom: 1rem;">Methods of Capture</p>
+        <div class="methods-grid">
+          <div class="method-card"><h5>Comment Cards</h5><p>Rate satisfaction; flag what was loved or not.</p></div>
+          <div class="method-card"><h5>Customer Returns</h5><p>Capture the reason at the point of return.</p></div>
+          <div class="method-card"><h5>Field Intelligence</h5><p>Second-hand insight from customer-facing staff.</p></div>
+          <div class="method-card"><h5>Focus Groups</h5><p>Group dynamics surface what 1-on-1 misses.</p></div>
+          <div class="method-card"><h5>Formal Surveys</h5><p>Mass mailings — broad reach, low response rate.</p></div>
+          <div class="method-card"><h5>Internet</h5><p>Subject-oriented interest groups, online forums.</p></div>
+          <div class="method-card"><h5>Interviews</h5><p>One-on-one, in person or by telephone.</p></div>
+          <div class="method-card"><h5>Complaint Studies</h5><p>Statistical review of customer grievances.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6: SCORING -->
+  <section class="slide" data-slide="6">
+    <div class="slide-num">06 / 10</div>
+    <div class="reveal"><div class="chapter-mark">05 · The Scoring System</div></div>
+    <div class="two-col-asym">
+      <div>
+        <div class="reveal"><h3 class="section-title">Four numbers.<br>That's it.</h3></div>
+        <div class="reveal"><p class="lede">Every relationship and every evaluation in the matrix is reduced to a single digit. Symbols become numbers. Numbers become decisions.</p></div>
+        <div class="reveal">
+          <div class="scores">
+            <div class="score-chip"><div class="num">0</div><div class="label">None</div></div>
+            <div class="score-chip"><div class="num">1</div><div class="label">Weak</div></div>
+            <div class="score-chip"><div class="num">3</div><div class="label">Medium</div></div>
+            <div class="score-chip"><div class="num">5</div><div class="label">Very Strong</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="reveal">
+        <table class="compare-table">
+          <thead><tr><th>Score</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td>0</td><td>No relationship · no importance · not applicable</td></tr>
+            <tr><td>1</td><td>Weak relationship · little importance · low score</td></tr>
+            <tr><td>3</td><td>Medium-to-strong · medium importance · medium score</td></tr>
+            <tr><td>5</td><td>Very strong · very important · high score</td></tr>
+          </tbody>
+        </table>
+        <p class="caption" style="margin-top: 1rem;">Used in sections 3, 4, 5, and 6.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7: SIX STEPS -->
+  <section class="slide" data-slide="7">
+    <div class="slide-num">07 / 10</div>
+    <div class="reveal"><div class="chapter-mark">06 · The Procedure</div></div>
+    <div class="reveal"><h3 class="section-title">Six steps to a house.</h3></div>
+    <div class="reveal" style="margin-top: 1rem;">
+      <ol class="steps">
+        <li class="step"><div><h4>Identify customer requirements</h4><p>The voice of the customer — captured through cards, surveys, interviews, focus groups, and the rest. Populates Section 1.</p></div></li>
+        <li class="step"><div><h4>Identify product features that meet those requirements</h4><p>Translate desire into capability. Populates Section 2.</p></div></li>
+        <li class="step"><div><h4>Determine technical correlations among features</h4><p>The roof. Score each pair of features against each other. Populates Section 3.</p></div></li>
+        <li class="step"><div><h4>Build the relationship matrix</h4><p>How well does each product feature satisfy each customer requirement? Populates Section 4.</p></div></li>
+        <li class="step"><div><h4>Comparatively evaluate input requirements</h4><p>Score the relative importance of each customer need; benchmark competing products. Populates Section 5.</p></div></li>
+        <li class="step"><div><h4>Comparatively evaluate output requirements</h4><p>Score competing products against each technical feature; set targets. Populates Section 6.</p></div></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 8: INTERACTIVE HOUSE OF QUALITY -->
+  <section class="slide hoq-example-slide" data-slide="8">
+    <div class="slide-num">08 / 10</div>
+    <div class="hoq-header">
+      <div class="reveal"><div class="chapter-mark">07 · Interactive · Example 23.1 — Bathtub Toy</div></div>
+      <div class="reveal"><h3>The complete house of quality. Click any cell.</h3></div>
+      <div class="reveal"><p>Click any number to toggle it through 0 → 1 → 3 → 5. The cell color and live technical priority scores update immediately. Shift-click a cell to inspect it without changing the number.</p></div>
+    </div>
+
+    <div class="hoq-stage-wrap reveal">
+      <svg id="hoqCanvas" class="hoq-canvas" viewBox="0 0 1080 860" preserveAspectRatio="xMinYMin meet" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div class="hoq-legend">
+        <strong>Legend</strong>
+        <div><span class="dot" style="background:#f3f5f7;"></span> 0 — none</div>
+        <div><span class="dot" style="background:#e7edf3;"></span> 1 — weak</div>
+        <div><span class="dot" style="background:#9fb9cd;"></span> 3 — medium</div>
+        <div><span class="dot" style="background:#1e668b;"></span> 5 — very strong</div>
+      </div>
+    </div>
+
+    <div class="hoq-readout reveal readout" id="hoqReadout">
+      <div class="readout-tag">Click any cell</div>
+      <h4>The bathtub toy house</h4>
+      <p>A toy for children aged 3–9, usable in a bathtub or on the floor. Click any number to cycle 0 → 1 → 3 → 5 and watch the matrix update in real time.</p>
+    </div>
+  </section>
+
+  <!-- 9: KEY TAKEAWAYS -->
+  <section class="slide" data-slide="9">
+    <div class="slide-num">09 / 09</div>
+    <div class="reveal"><div class="chapter-mark">08 · Why It Matters</div></div>
+    <div class="reveal"><h3 class="section-title">Five things to remember.</h3></div>
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-top: 1.5rem;">
+      <div class="reveal" style="border-top: 3px solid var(--accent); padding-top: 1rem;">
+        <p class="caption" style="color: var(--accent);">01 · Translation, not generation</p>
+        <p style="font-size: 1.05rem; line-height: 1.5; margin-top: 0.5rem;">QFD doesn't invent customer requirements — it translates them into engineering language without losing fidelity.</p>
+      </div>
+      <div class="reveal" style="border-top: 3px solid var(--accent); padding-top: 1rem;">
+        <p class="caption" style="color: var(--accent);">02 · Cascading not branching</p>
+        <p style="font-size: 1.05rem; line-height: 1.5; margin-top: 0.5rem;">Outputs of one matrix become inputs of the next. The chain runs from customer voice all the way to shop-floor quality procedures.</p>
+      </div>
+      <div class="reveal" style="border-top: 3px solid var(--accent); padding-top: 1rem;">
+        <p class="caption" style="color: var(--accent);">03 · Numbers replace opinions</p>
+        <p style="font-size: 1.05rem; line-height: 1.5; margin-top: 0.5rem;">Scoring (0, 1, 3, 5) forces explicit judgment about strength of relationship and importance — and makes those judgments comparable.</p>
+      </div>
+      <div class="reveal" style="border-top: 3px solid var(--accent); padding-top: 1rem;">
+        <p class="caption" style="color: var(--accent);">04 · Competition is part of the matrix</p>
+        <p style="font-size: 1.05rem; line-height: 1.5; margin-top: 0.5rem;">Sections 5 and 6 fold competitive benchmarking directly into the design analysis — strengths and weaknesses become design targets.</p>
+      </div>
+      <div class="reveal" style="border-top: 3px solid var(--accent); padding-top: 1rem; grid-column: 1 / -1;">
+        <p class="caption" style="color: var(--accent);">05 · Adaptable framework, not a recipe</p>
+        <p style="font-size: 1.05rem; line-height: 1.5; margin-top: 0.5rem;">Use one matrix or thirty. Apply it to a product or a service. Adapt the six-section template to the problem at hand — QFD is a general framework that must be customized for context.</p>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div class="nav">
+  <button id="prev">← Prev</button>
+  <span class="nav-counter"><span id="cur">1</span> / <span id="total">10</span></span>
+  <button id="next">Next →</button>
+</div>
+
+<script>
+(function() {
+  /* ============= NAVIGATION ============= */
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('cur');
+  document.getElementById('total').textContent = total;
+
+  function show(i) {
+    slides.forEach(s => s.classList.remove('active'));
+    slides[i].classList.add('active');
+    counter.textContent = i + 1;
+    progress.style.width = ((i + 1) / total * 100) + '%';
+    document.getElementById('prev').disabled = (i === 0);
+    document.getElementById('next').disabled = (i === total - 1);
+    slides[i].scrollTop = 0;
+  }
+  document.getElementById('prev').addEventListener('click', () => { if (current > 0) { current--; show(current); } });
+  document.getElementById('next').addEventListener('click', () => { if (current < total - 1) { current++; show(current); } });
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { if (current < total - 1) { current++; show(current); } e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { if (current > 0) { current--; show(current); } e.preventDefault(); }
+    else if (e.key === 'Home') { current = 0; show(current); }
+    else if (e.key === 'End') { current = total - 1; show(current); }
+  });
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; }, { passive: true });
+  document.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(dx) > 60) {
+      if (dx < 0 && current < total - 1) { current++; show(current); }
+      else if (dx > 0 && current > 0) { current--; show(current); }
+    }
+  }, { passive: true });
+
+  /* ============= SLIDE 4: HOQ SECTION INFO ============= */
+  const hoqInfo = document.getElementById('hoq-info');
+  const sectionDetails = {
+    '1': { title: 'Section 1 — Input Requirements', tag: 'Left wall', body: 'A list of input requirements that drive the current matrix. In the starting matrix these are the needs and desires of the customer — the voice of the customer.' },
+    '2': { title: 'Section 2 — Output Technical Requirements', tag: 'Top of wall', body: 'How the input requirements are to be satisfied. In the starting matrix, these are the product\'s technical features. They become inputs for the next matrix.' },
+    '3': { title: 'Section 3 — Technical Correlations', tag: 'The roof', body: 'A diagonal grid that compares each output requirement with all the others. Its house-roof shape gives the matrix its name: the house of quality.' },
+    '4': { title: 'Section 4 — Relationship Matrix', tag: 'The center', body: 'The core. Indicates how strongly each input requirement is satisfied by each output requirement. Numerical scores (0, 1, 3, 5) capture every pairing.' },
+    '5': { title: 'Section 5 — Comparative Evaluation of Inputs', tag: 'Right wall', body: 'Two evaluations: relative importance of each customer requirement, and a benchmark of competitive products. Reveals weaknesses to attack.' },
+    '6': { title: 'Section 6 — Comparative Evaluation of Outputs', tag: 'The floor', body: 'Each competing product is scored against each technical requirement. Target values can then be set for the new product.' }
+  };
+  document.querySelectorAll('.hoq-section').forEach(el => {
+    el.addEventListener('click', () => {
+      const sec = el.getAttribute('data-section');
+      const d = sectionDetails[sec];
+      document.querySelectorAll('.hoq-section').forEach(e => {
+        e.classList.remove('is-selected');
+        e.setAttribute('fill', e.getAttribute('data-section') === '4' ? '#f3f5f7' : '#e9edf1');
+      });
+      el.classList.add('is-selected');
+      el.setAttribute('fill', '#1e668b');
+      hoqInfo.innerHTML = `<div class="info-tag">${d.tag}</div><h4>${d.title}</h4><p>${d.body}</p>`;
+    });
+  });
+
+  /* ============= SLIDE 8: FULL HOUSE OF QUALITY ============= */
+  // Data straight from the textbook (Figure 23.8)
+  const customerReqs = ['Safe', 'Low cost', 'Fun to play with', 'Stimulates imagination', 'Lightweight to float', 'Wheels for flat surface'];
+  const techFeatures = ['Low density material', 'Assembled product', 'Strong and durable', 'Colorful', 'Molded parts', 'Smooth surfaces', 'No sharp edges', 'No small parts to swallow', 'Low cost materials'];
+
+  // Relationship matrix: rows = customer reqs (6), cols = tech features (9)
+  const relMatrix = [
+    [0, 3, 3, 0, 0, 5, 5, 5, 0],  // Safe
+    [0, 5, 0, 0, 3, 0, 0, 0, 5],  // Low cost
+    [1, 1, 3, 5, 1, 1, 1, 0, 0],  // Fun to play with
+    [0, 3, 1, 5, 3, 0, 0, 0, 0],  // Stimulates imagination
+    [5, 3, 0, 0, 3, 1, 0, 0, 1],  // Lightweight to float
+    [0, 5, 3, 0, 3, 1, 0, 3, 0]   // Wheels for flat surface
+  ];
+
+  // Relative importance
+  const importance = [5, 3, 5, 3, 3, 1];
+
+  // Right wing: customer req vs competitors A, B, C
+  // [reqIndex][A,B,C]
+  const custVsComp = [
+    [3, 3, 3],  // Safe
+    [1, 3, 3],  // Low cost
+    [3, 3, 3],  // Fun to play with
+    [1, 1, 5],  // Stimulates imagination
+    [5, 3, 1],  // Lightweight
+    [0, 0, 3]   // Wheels
+  ];
+
+  // Floor: competitor vs tech feature
+  // [A/B/C][9 features]
+  const compVsTech = [
+    [5, 0, 3, 3, 5, 1, 3, 5, 3],  // A
+    [5, 3, 3, 1, 3, 3, 1, 3, 3],  // B
+    [1, 5, 1, 5, 3, 3, 1, 1, 1]   // C
+  ];
+
+  // Roof: correlation between tech features (upper triangular, i < j)
+  // From textbook image, top to bottom of roof reading
+  // Row from bottom of roof (adjacent pairs): cols 0-1, 1-2, 2-3, 3-4, 4-5, 5-6, 6-7, 7-8
+  // Then cols 0-2, 1-3, 2-4, 3-5, 4-6, 5-7, 6-8
+  // ... up to col 0-8 at top
+  // Reading textbook carefully (top diamond is single 5; reading down):
+  // We'll store as roof[i][j] where j > i, total 36 cells (9 choose 2)
+  // Values from the image, organized by adjacency level
+  const roof = {
+    // adjacent (offset 1) — 8 cells, bottom of roof
+    '0,1': 3, '1,2': 1, '2,3': 0, '3,4': 3, '4,5': 1, '5,6': 3, '6,7': 5, '7,8': 0,
+    // offset 2 — 7 cells
+    '0,2': 5, '1,3': 0, '2,4': 0, '3,5': 0, '4,6': 3, '5,7': 3, '6,8': 0,
+    // offset 3 — 6 cells
+    '0,3': 1, '1,4': 5, '2,5': 0, '3,6': 0, '4,7': 1, '5,8': 0,
+    // offset 4 — 5 cells
+    '0,4': 1, '1,5': 0, '2,6': 0, '3,7': 0, '4,8': 1,
+    // offset 5 — 4 cells
+    '0,5': 0, '1,6': 1, '2,7': 1, '3,8': 0,
+    // offset 6 — 3 cells
+    '0,6': 0, '1,7': 0, '2,8': 3,
+    // offset 7 — 2 cells
+    '0,7': 0, '1,8': 3,
+    // offset 8 — 1 cell (top)
+    '0,8': 5
+  };
+
+  // Build SVG
+  const svg = document.getElementById('hoqCanvas');
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+
+  // Layout constants
+  const COL_W = 38;        // tech feature column width
+  const ROW_H = 32;        // customer req row height
+  const CUST_W = 165;      // customer req label column width
+  const IMP_W = 48;        // importance column width
+  const COMP_W = 30;       // competitor column width
+  const LABEL_H = 175;     // tech label vertical height
+  const ROOF_H = 200;      // roof height
+  const ROOF_GAP = 14;     // breathing space below roof
+  const BODY_GAP = 14;     // breathing space below tech labels
+  const FLOOR_GAP = 18;    // breathing space above floor block
+  const IMPORTANCE_GAP = 10; // gap between relationship matrix and importance column
+  const WING_GAP = 10;     // gap between importance and competitor columns
+
+  const X0 = 120;          // left padding (inside SVG)
+  const Y0 = 20;           // top padding
+  const STEP_X = 24;       // dedicated left gutter for step labels
+  const matrixX = X0 + CUST_W;          // where matrix starts horizontally
+  const techLabelY = Y0 + ROOF_H + ROOF_GAP;
+  const matrixY = techLabelY + LABEL_H + BODY_GAP; // where matrix starts vertically
+  const matrixW = COL_W * 9;            // matrix width
+
+  // Helper to color a cell by value
+  function valClass(v) {
+    if (v === 0) return '';
+    if (v === 1) return 'v-1';
+    if (v === 3) return 'v-3';
+    if (v === 5) return 'v-5';
+    return '';
+  }
+
+  const scoreCycle = [0, 1, 3, 5];
+  function nextScore(v) {
+    const i = scoreCycle.indexOf(Number(v));
+    return scoreCycle[(i + 1) % scoreCycle.length];
+  }
+  function scoreMeaning(v) {
+    return ({0: 'No relationship', 1: 'Weak relationship', 3: 'Medium-to-strong', 5: 'Very strong'})[Number(v)] || '—';
+  }
+  function setCellVisual(g, value) {
+    const shape = g.querySelector('.cell-rect');
+    const text = g.querySelector('.cell-text');
+    if (!shape || !text) return;
+    shape.setAttribute('class', 'cell-rect ' + valClass(value));
+    text.textContent = value;
+    if (value === 5) {
+      text.setAttribute('fill', '#f4ede2');
+      text.setAttribute('font-weight', '700');
+    } else {
+      text.setAttribute('fill', '#1a1410');
+      text.removeAttribute('font-weight');
+    }
+  }
+  function writeValue(info, value) {
+    const updated = { ...info, value };
+    if (info.kind === 'roof') roof[`${info.i},${info.j}`] = value;
+    else if (info.kind === 'relation') relMatrix[info.r][info.c] = value;
+    else if (info.kind === 'importance') importance[info.r] = value;
+    else if (info.kind === 'cust-comp') custVsComp[info.r][info.k] = value;
+    else if (info.kind === 'tech-comp') compVsTech[info.k][info.c] = value;
+    return updated;
+  }
+  function techPriorityTotals() {
+    return techFeatures.map((name, c) => {
+      const score = relMatrix.reduce((sum, row, r) => sum + row[c] * importance[r], 0);
+      return { name, score };
+    });
+  }
+  function liveSummaryHtml() {
+    const totals = techPriorityTotals();
+    const max = Math.max(...totals.map(t => t.score), 1);
+    const top = totals.slice().sort((a, b) => b.score - a.score).slice(0, 3);
+    return `
+      <div class="readout-live">
+        <h5>Live technical priorities</h5>
+        ${top.map(t => `
+          <div class="live-row">
+            <strong>${t.score}</strong>
+            <span class="live-bar" style="width:${Math.max(12, Math.round((t.score / max) * 88))}px"></span>
+            <span>${t.name}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  // Helper: create cell group
+  function makeCell(x, y, w, h, value, infoData) {
+    const g = document.createElementNS(SVG_NS, 'g');
+    g.setAttribute('class', 'cell');
+    g.dataset.info = JSON.stringify(infoData);
+    const r = document.createElementNS(SVG_NS, 'rect');
+    r.setAttribute('x', x);
+    r.setAttribute('y', y);
+    r.setAttribute('width', w);
+    r.setAttribute('height', h);
+    r.setAttribute('class', 'cell-rect ' + valClass(value));
+    g.appendChild(r);
+    const t = document.createElementNS(SVG_NS, 'text');
+    t.setAttribute('x', x + w/2);
+    t.setAttribute('y', y + h/2);
+    t.setAttribute('class', 'cell-text');
+    if (value === 5) t.setAttribute('fill', '#f4ede2');
+    if (value === 5) t.setAttribute('font-weight', '700');
+    t.textContent = value;
+    g.appendChild(t);
+    return g;
+  }
+
+  // ===== ROOF =====
+  // Each roof cell is a diamond (rotated square). 8 levels (offset 1 to 8)
+  // The roof sits above the tech feature columns
+  // The center of each tech column: matrixX + i*COL_W + COL_W/2
+  // For pair (i, j), center x = midpoint of column centers; center y depends on offset (j-i)
+  // Diamond size = COL_W (width of one column footprint)
+  const roofGroup = document.createElementNS(SVG_NS, 'g');
+  roofGroup.setAttribute('class', 'roof-group');
+  const diamondHalf = COL_W / 2;
+  // The bottom row of diamonds sits just above the tech labels
+  // Bottom y for the bottom row of diamonds = matrixY - LABEL_H = Y0 + ROOF_H
+  const roofBottomY = Y0 + ROOF_H;
+
+  for (let offset = 1; offset <= 8; offset++) {
+    for (let i = 0; i + offset <= 8; i++) {
+      const j = i + offset;
+      const cx = matrixX + (i + j + 1) * COL_W / 2; // center x = midpoint between col i and col j centers, but cells are offset by half col widths
+      // actually: between col i center (matrixX + i*COL_W + COL_W/2) and col j center: midpoint = matrixX + ((i+j)*COL_W + COL_W)/2
+      // simplified: matrixX + (i+j+1)*COL_W/2  ✓
+      const cy = roofBottomY - (offset - 0.5) * (COL_W * 0.5); // each level rises by COL_W/2 (so diamonds tile)
+      // Wait — diamonds with diagonal = COL_W tile such that adjacent diamonds (same row) share an edge horizontally;
+      // And rows stack vertically with spacing of COL_W/2.
+      // Bottom row diamonds have center y = roofBottomY - COL_W/4 (actually their bottom point is at roofBottomY)
+      // Actually simpler: bottom point of bottom row at roofBottomY, diamond has half-diagonal of COL_W/2 vertically -> center y = roofBottomY - COL_W/2
+      // But that doesn't tile right. Let me reset:
+      // For diamonds tiled in offset rows, vertical step = COL_W/2 (height of half diamond).
+      // Bottom row center y: roofBottomY - COL_W/4 doesn't fit. Use proper trig: a square rotated 45deg with side s has diagonal = s*sqrt(2). To tile two squares stacked, vertical center step = s*sqrt(2)/2 = diagonal/2.
+      // We'll use simple model: cell "diagonal" = COL_W (so it sits in column footprint width). Half-diagonal = COL_W/2. Vertical step = COL_W/2.
+      // The bottom point of bottom row sits at roofBottomY, so center = roofBottomY - COL_W/2.
+      // Hmm but I already had cy = roofBottomY - (offset - 0.5) * (COL_W * 0.5). Let me fix.
+      const cyFixed = roofBottomY - COL_W/2 - (offset - 1) * (COL_W/2);
+
+      const points = [
+        `${cx},${cyFixed - COL_W/2}`,         // top
+        `${cx + COL_W/2},${cyFixed}`,         // right
+        `${cx},${cyFixed + COL_W/2}`,         // bottom
+        `${cx - COL_W/2},${cyFixed}`          // left
+      ].join(' ');
+
+      const value = roof[`${i},${j}`];
+      const g = document.createElementNS(SVG_NS, 'g');
+      g.setAttribute('class', 'cell');
+      g.dataset.info = JSON.stringify({
+        kind: 'roof',
+        i: i, j: j,
+        value: value,
+        techA: techFeatures[i],
+        techB: techFeatures[j]
+      });
+      const poly = document.createElementNS(SVG_NS, 'polygon');
+      poly.setAttribute('points', points);
+      poly.setAttribute('class', 'cell-rect ' + valClass(value));
+      g.appendChild(poly);
+      const t = document.createElementNS(SVG_NS, 'text');
+      t.setAttribute('x', cx);
+      t.setAttribute('y', cyFixed);
+      t.setAttribute('class', 'cell-text');
+      if (value === 5) { t.setAttribute('fill', '#f4ede2'); t.setAttribute('font-weight', '700'); }
+      t.textContent = value;
+      g.appendChild(t);
+      roofGroup.appendChild(g);
+    }
+  }
+  svg.appendChild(roofGroup);
+
+  // Step 3 label and leader
+  const step3Leader = document.createElementNS(SVG_NS, 'path');
+  const step3BaseX = matrixX + 2;
+  const step3BaseY = techLabelY - 68;
+  step3Leader.setAttribute('d', `M ${step3BaseX} ${step3BaseY} q -8 0 -8 8 L ${step3BaseX - 82} ${step3BaseY - 82} q -6 -6 -12 -6`);
+  step3Leader.setAttribute('fill', 'none');
+  step3Leader.setAttribute('stroke', '#2a201a');
+  step3Leader.setAttribute('stroke-width', '1.1');
+  svg.appendChild(step3Leader);
+  const step3 = document.createElementNS(SVG_NS, 'text');
+  step3.setAttribute('x', step3BaseX - 120);
+  step3.setAttribute('y', step3BaseY - 88);
+  step3.setAttribute('font-family', 'Fraunces, serif');
+  step3.setAttribute('font-size', '12');
+  step3.setAttribute('fill', '#1a1410');
+  step3.setAttribute('font-weight', '500');
+  step3.textContent = 'Step 3';
+  svg.appendChild(step3);
+
+  // ===== TECH FEATURE LABELS (vertical text above matrix) =====
+  for (let i = 0; i < 9; i++) {
+    const x = matrixX + i * COL_W;
+    // background rect
+    const bg = document.createElementNS(SVG_NS, 'rect');
+    bg.setAttribute('x', x);
+    bg.setAttribute('y', techLabelY);
+    bg.setAttribute('width', COL_W);
+    bg.setAttribute('height', LABEL_H);
+    bg.setAttribute('class', 'label-bg');
+    svg.appendChild(bg);
+    // rotated label
+    const lbl = document.createElementNS(SVG_NS, 'text');
+    const cx = x + COL_W/2;
+    const cy = techLabelY + LABEL_H - 10;
+    lbl.setAttribute('x', cx);
+    lbl.setAttribute('y', cy);
+    lbl.setAttribute('class', 'label-text');
+    lbl.setAttribute('text-anchor', 'start');
+    lbl.setAttribute('transform', `rotate(-90 ${cx} ${cy})`);
+    lbl.textContent = techFeatures[i];
+    svg.appendChild(lbl);
+  }
+
+  // Step 2 label and leader
+  const step2 = document.createElementNS(SVG_NS, 'text');
+  step2.setAttribute('x', STEP_X + 30);
+  step2.setAttribute('y', techLabelY + LABEL_H/2 + 4);
+  step2.setAttribute('font-family', 'Fraunces, serif');
+  step2.setAttribute('font-size', '12');
+  step2.setAttribute('fill', '#1a1410');
+  step2.setAttribute('font-weight', '500');
+  step2.textContent = 'Step 2';
+  svg.appendChild(step2);
+  const step2Leader = document.createElementNS(SVG_NS, 'line');
+  step2Leader.setAttribute('x1', STEP_X + 78);
+  step2Leader.setAttribute('y1', techLabelY + LABEL_H/2);
+  step2Leader.setAttribute('x2', matrixX - 8);
+  step2Leader.setAttribute('y2', techLabelY + LABEL_H/2);
+  step2Leader.setAttribute('stroke', '#2a201a');
+  step2Leader.setAttribute('stroke-width', '1');
+  svg.appendChild(step2Leader);
+
+  // ===== IMPORTANCE COLUMN HEADER (vertical, separated like the textbook) =====
+  const impX = matrixX + matrixW + IMPORTANCE_GAP;
+  const wingTopY = matrixY - 76;
+  const impHeaderH = matrixY - wingTopY;
+
+  const impBg = document.createElementNS(SVG_NS, 'rect');
+  impBg.setAttribute('x', impX);
+  impBg.setAttribute('y', wingTopY);
+  impBg.setAttribute('width', IMP_W);
+  impBg.setAttribute('height', impHeaderH);
+  impBg.setAttribute('class', 'label-bg imp-bg');
+  svg.appendChild(impBg);
+
+  const impCx = impX + IMP_W/2;
+  const impCy = wingTopY + impHeaderH/2;
+  const impLabelGroup = document.createElementNS(SVG_NS, 'g');
+  impLabelGroup.setAttribute('transform', `rotate(-90 ${impCx} ${impCy})`);
+
+  const impLabelTop = document.createElementNS(SVG_NS, 'text');
+  impLabelTop.setAttribute('x', impCx);
+  impLabelTop.setAttribute('y', impCy - 7);
+  impLabelTop.setAttribute('class', 'label-text imp-text-label');
+  impLabelTop.setAttribute('text-anchor', 'middle');
+  impLabelTop.textContent = 'Relative';
+  impLabelGroup.appendChild(impLabelTop);
+
+  const impLabelBottom = document.createElementNS(SVG_NS, 'text');
+  impLabelBottom.setAttribute('x', impCx);
+  impLabelBottom.setAttribute('y', impCy + 9);
+  impLabelBottom.setAttribute('class', 'label-text imp-text-label');
+  impLabelBottom.setAttribute('text-anchor', 'middle');
+  impLabelBottom.textContent = 'importance';
+  impLabelGroup.appendChild(impLabelBottom);
+
+  svg.appendChild(impLabelGroup);
+
+  // ===== A B C HEADERS for right wing =====
+  const compX = impX + IMP_W + WING_GAP;
+
+  // boxed title above A/B/C like the textbook
+  const compTitleBg = document.createElementNS(SVG_NS, 'rect');
+  compTitleBg.setAttribute('x', compX);
+  compTitleBg.setAttribute('y', wingTopY);
+  compTitleBg.setAttribute('width', COMP_W * 3);
+  compTitleBg.setAttribute('height', 42);
+  compTitleBg.setAttribute('class', 'label-bg');
+  svg.appendChild(compTitleBg);
+  const compTitle = document.createElementNS(SVG_NS, 'text');
+  compTitle.setAttribute('x', compX + (COMP_W * 3)/2);
+  compTitle.setAttribute('y', wingTopY + 19);
+  compTitle.setAttribute('text-anchor', 'middle');
+  compTitle.setAttribute('font-family', 'Fraunces, serif');
+  compTitle.setAttribute('font-size', '10.5');
+  compTitle.setAttribute('font-weight', '700');
+  compTitle.textContent = 'Competing';
+  svg.appendChild(compTitle);
+  const compTitle2 = document.createElementNS(SVG_NS, 'text');
+  compTitle2.setAttribute('x', compX + (COMP_W * 3)/2);
+  compTitle2.setAttribute('y', wingTopY + 32);
+  compTitle2.setAttribute('text-anchor', 'middle');
+  compTitle2.setAttribute('font-family', 'Fraunces, serif');
+  compTitle2.setAttribute('font-size', '10.5');
+  compTitle2.setAttribute('font-weight', '700');
+  compTitle2.textContent = 'products';
+  svg.appendChild(compTitle2);
+
+  // A, B, C header row
+  for (let k = 0; k < 3; k++) {
+    const cx = compX + k * COMP_W;
+    const cyHeader = matrixY - 34;
+    const hbg = document.createElementNS(SVG_NS, 'rect');
+    hbg.setAttribute('x', cx);
+    hbg.setAttribute('y', cyHeader);
+    hbg.setAttribute('width', COMP_W);
+    hbg.setAttribute('height', 34);
+    hbg.setAttribute('class', 'header-bg');
+    svg.appendChild(hbg);
+    const ht = document.createElementNS(SVG_NS, 'text');
+    ht.setAttribute('x', cx + COMP_W/2);
+    ht.setAttribute('y', cyHeader + 22);
+    ht.setAttribute('text-anchor', 'middle');
+    ht.setAttribute('class', 'header-text');
+    ht.textContent = ['A','B','C'][k];
+    svg.appendChild(ht);
+  }
+
+  // Step 5 top brace spanning the separated relative-importance and competitor blocks
+  const step5Left = impX - 2;
+  const step5Right = compX + COMP_W*3 + 2;
+  const step5Center = (step5Left + step5Right) / 2;
+  const s5y = wingTopY - 14;
+
+  const step5Brace = document.createElementNS(SVG_NS, 'path');
+  step5Brace.setAttribute('d', `
+    M ${step5Left} ${s5y}
+    q -6 0 -6 6
+    l 0 5
+    M ${step5Left} ${s5y}
+    L ${step5Center - 10} ${s5y}
+    M ${step5Center - 10} ${s5y}
+    q 10 0 10 -7
+    q 0 7 10 7
+    M ${step5Center + 10} ${s5y}
+    L ${step5Right} ${s5y}
+    M ${step5Right} ${s5y}
+    q 6 0 6 6
+    l 0 5
+  `);
+  step5Brace.setAttribute('fill', 'none');
+  step5Brace.setAttribute('stroke', '#2a201a');
+  step5Brace.setAttribute('stroke-width', '1');
+  step5Brace.setAttribute('stroke-linecap', 'round');
+  svg.appendChild(step5Brace);
+
+  const step5 = document.createElementNS(SVG_NS, 'text');
+  step5.setAttribute('x', step5Center);
+  step5.setAttribute('y', s5y - 12);
+  step5.setAttribute('text-anchor', 'middle');
+  step5.setAttribute('font-family', 'Fraunces, serif');
+  step5.setAttribute('font-size', '12');
+  step5.setAttribute('fill', '#1a1410');
+  step5.setAttribute('font-weight', '500');
+  step5.textContent = 'Step 5';
+  svg.appendChild(step5);
+
+  // ===== CUSTOMER REQUIREMENT LABELS (left column) =====
+  for (let r = 0; r < 6; r++) {
+    const y = matrixY + r * ROW_H;
+    const bg = document.createElementNS(SVG_NS, 'rect');
+    bg.setAttribute('x', X0);
+    bg.setAttribute('y', y);
+    bg.setAttribute('width', CUST_W);
+    bg.setAttribute('height', ROW_H);
+    bg.setAttribute('class', 'label-bg');
+    svg.appendChild(bg);
+    const t = document.createElementNS(SVG_NS, 'text');
+    t.setAttribute('x', X0 + 10);
+    t.setAttribute('y', y + ROW_H/2 + 4);
+    t.setAttribute('class', 'label-text');
+    t.setAttribute('font-weight', '600');
+    // Multi-line if too long: simple split
+    const txt = customerReqs[r];
+    if (txt.length > 18) {
+      const words = txt.split(' ');
+      const mid = Math.ceil(words.length/2);
+      const line1 = words.slice(0, mid).join(' ');
+      const line2 = words.slice(mid).join(' ');
+      t.setAttribute('y', y + ROW_H/2 - 2);
+      t.textContent = line1;
+      const t2 = document.createElementNS(SVG_NS, 'text');
+      t2.setAttribute('x', X0 + 10);
+      t2.setAttribute('y', y + ROW_H/2 + 11);
+      t2.setAttribute('class', 'label-text');
+      t2.setAttribute('font-weight', '600');
+      t2.textContent = line2;
+      svg.appendChild(t);
+      svg.appendChild(t2);
+    } else {
+      t.textContent = txt;
+      svg.appendChild(t);
+    }
+  }
+
+  // Step 1 brace and label
+  const step1Brace = document.createElementNS(SVG_NS, 'path');
+  const s1x = X0 - 14;
+  const s1y1 = matrixY + 2;
+  const s1y2 = matrixY + ROW_H * 6 - 2;
+  step1Brace.setAttribute('d', `M ${s1x} ${s1y1} q -6 0 -6 6 L ${s1x - 6} ${s1y1 + 8} L ${s1x - 6} ${s1y2 - 8} q 0 6 6 6`);
+  step1Brace.setAttribute('fill', 'none');
+  step1Brace.setAttribute('stroke', '#2a201a');
+  step1Brace.setAttribute('stroke-width', '1');
+  svg.appendChild(step1Brace);
+  const step1 = document.createElementNS(SVG_NS, 'text');
+  step1.setAttribute('x', STEP_X + 18);
+  step1.setAttribute('y', matrixY + ROW_H * 3 + 4);
+  step1.setAttribute('font-family', 'Fraunces, serif');
+  step1.setAttribute('font-size', '12');
+  step1.setAttribute('fill', '#1a1410');
+  step1.setAttribute('font-weight', '500');
+  step1.textContent = 'Step 1';
+  svg.appendChild(step1);
+
+  // Step 4 label and leader to top-left corner of relationship matrix
+  const step4 = document.createElementNS(SVG_NS, 'text');
+  step4.setAttribute('x', STEP_X + 112);
+  step4.setAttribute('y', matrixY - 36);
+  step4.setAttribute('font-family', 'Fraunces, serif');
+  step4.setAttribute('font-size', '12');
+  step4.setAttribute('fill', '#1a1410');
+  step4.setAttribute('font-weight', '500');
+  step4.textContent = 'Step 4';
+  svg.appendChild(step4);
+  const step4Leader = document.createElementNS(SVG_NS, 'path');
+  step4Leader.setAttribute('d', `M ${STEP_X + 160} ${matrixY - 32} L ${matrixX - 12} ${matrixY - 4} L ${matrixX} ${matrixY}`);
+  step4Leader.setAttribute('fill', 'none');
+  step4Leader.setAttribute('stroke', '#2a201a');
+  step4Leader.setAttribute('stroke-width', '1');
+  svg.appendChild(step4Leader);
+
+  // ===== RELATIONSHIP MATRIX (Section 4 / Step 4) =====
+  for (let r = 0; r < 6; r++) {
+    for (let c = 0; c < 9; c++) {
+      const cell = makeCell(
+        matrixX + c * COL_W,
+        matrixY + r * ROW_H,
+        COL_W, ROW_H,
+        relMatrix[r][c],
+        { kind: 'relation', r: r, c: c, value: relMatrix[r][c], cust: customerReqs[r], tech: techFeatures[c] }
+      );
+      svg.appendChild(cell);
+    }
+  }
+
+  // ===== IMPORTANCE COLUMN (Section 5 first part) =====
+  for (let r = 0; r < 6; r++) {
+    const cell = makeCell(
+      impX,
+      matrixY + r * ROW_H,
+      IMP_W, ROW_H,
+      importance[r],
+      { kind: 'importance', r: r, value: importance[r], cust: customerReqs[r] }
+    );
+    svg.appendChild(cell);
+  }
+
+  // ===== RIGHT WING — competing products vs customer reqs =====
+  for (let r = 0; r < 6; r++) {
+    for (let k = 0; k < 3; k++) {
+      const cell = makeCell(
+        compX + k * COMP_W,
+        matrixY + r * ROW_H,
+        COMP_W, ROW_H,
+        custVsComp[r][k],
+        { kind: 'cust-comp', r: r, k: k, value: custVsComp[r][k], cust: customerReqs[r], comp: ['A','B','C'][k] }
+      );
+      svg.appendChild(cell);
+    }
+  }
+
+  // ===== FLOOR — competing products vs tech features (Step 6) =====
+  // Layout: a label area (under the customer-req column) saying "Competing products" with A/B/C rows
+  const floorY = matrixY + 6 * ROW_H + FLOOR_GAP; // gap below the matrix
+  // Bottom-left Step 6 panel: wide label box + narrow A/B/C label column
+  const floorPanelX = X0;
+  const floorABCW = 34;
+  const floorLabelW = CUST_W - floorABCW;
+  const floorLabelBg = document.createElementNS(SVG_NS, 'rect');
+  floorLabelBg.setAttribute('x', floorPanelX);
+  floorLabelBg.setAttribute('y', floorY);
+  floorLabelBg.setAttribute('width', floorLabelW);
+  floorLabelBg.setAttribute('height', ROW_H * 3);
+  floorLabelBg.setAttribute('class', 'label-bg');
+  svg.appendChild(floorLabelBg);
+  const floorLbl = document.createElementNS(SVG_NS, 'text');
+  floorLbl.setAttribute('x', floorPanelX + floorLabelW/2);
+  floorLbl.setAttribute('y', floorY + ROW_H*3/2 - 4);
+  floorLbl.setAttribute('text-anchor', 'middle');
+  floorLbl.setAttribute('class', 'label-text');
+  floorLbl.setAttribute('font-weight', '700');
+  floorLbl.textContent = 'Competing';
+  svg.appendChild(floorLbl);
+  const floorLbl2 = document.createElementNS(SVG_NS, 'text');
+  floorLbl2.setAttribute('x', floorPanelX + floorLabelW/2);
+  floorLbl2.setAttribute('y', floorY + ROW_H*3/2 + 11);
+  floorLbl2.setAttribute('text-anchor', 'middle');
+  floorLbl2.setAttribute('class', 'label-text');
+  floorLbl2.setAttribute('font-weight', '700');
+  floorLbl2.textContent = 'products';
+  svg.appendChild(floorLbl2);
+
+  // Step 6 brace and label
+  const step6Brace = document.createElementNS(SVG_NS, 'path');
+  const s6x = X0 - 14;
+  const s6y1 = floorY + 2;
+  const s6y2 = floorY + ROW_H * 3 - 2;
+  step6Brace.setAttribute('d', `M ${s6x} ${s6y1} q -6 0 -6 6 L ${s6x - 6} ${s6y1 + 8} L ${s6x - 6} ${s6y2 - 8} q 0 6 6 6`);
+  step6Brace.setAttribute('fill', 'none');
+  step6Brace.setAttribute('stroke', '#2a201a');
+  step6Brace.setAttribute('stroke-width', '1');
+  svg.appendChild(step6Brace);
+  const step6 = document.createElementNS(SVG_NS, 'text');
+  step6.setAttribute('x', STEP_X + 12);
+  step6.setAttribute('y', floorY + ROW_H*1.5 + 4);
+  step6.setAttribute('font-family', 'Fraunces, serif');
+  step6.setAttribute('font-size', '12');
+  step6.setAttribute('fill', '#1a1410');
+  step6.setAttribute('font-weight', '500');
+  step6.textContent = 'Step 6';
+  svg.appendChild(step6);
+
+  // A/B/C row labels (small column between the "Competing products" box and the data)
+  for (let k = 0; k < 3; k++) {
+    const y = floorY + k * ROW_H;
+    const bg = document.createElementNS(SVG_NS, 'rect');
+    bg.setAttribute('x', floorPanelX + floorLabelW);
+    bg.setAttribute('y', y);
+    bg.setAttribute('width', floorABCW);
+    bg.setAttribute('height', ROW_H);
+    bg.setAttribute('class', 'header-bg');
+    svg.appendChild(bg);
+    const t = document.createElementNS(SVG_NS, 'text');
+    t.setAttribute('x', floorPanelX + floorLabelW + floorABCW/2);
+    t.setAttribute('y', y + ROW_H/2 + 5);
+    t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('class', 'header-text');
+    t.textContent = ['A','B','C'][k];
+    svg.appendChild(t);
+  }
+
+  // Floor data cells
+  for (let k = 0; k < 3; k++) {
+    for (let c = 0; c < 9; c++) {
+      const cell = makeCell(
+        matrixX + c * COL_W,
+        floorY + k * ROW_H,
+        COL_W, ROW_H,
+        compVsTech[k][c],
+        { kind: 'tech-comp', k: k, c: c, value: compVsTech[k][c], comp: ['A','B','C'][k], tech: techFeatures[c] }
+      );
+      svg.appendChild(cell);
+    }
+  }
+
+  // ===== INTERACTION =====
+  const readout = document.getElementById('hoqReadout');
+  function buildReadout(info, meta = {}) {
+    const v = info.value;
+    const meaning = scoreMeaning(v);
+    let tag, title, pair, body;
+    if (info.kind === 'roof') {
+      tag = 'Section 3 · Roof · Correlation';
+      title = 'Two technical features';
+      pair = `${info.techA}  ↔  ${info.techB}`;
+      body = `How strongly do these two design features influence each other? The roof captures every pair of features so designers can spot conflicts and synergies before committing to a design.`;
+    } else if (info.kind === 'relation') {
+      tag = 'Section 4 · Body · Relationship';
+      title = 'Customer need → tech feature';
+      pair = `${info.cust}  →  ${info.tech}`;
+      body = `This value now feeds the live technical-priority calculation: relationship score × customer importance. Change it and the top-priority features update instantly.`;
+    } else if (info.kind === 'importance') {
+      tag = 'Section 5 · Right wall · Importance';
+      title = `"${info.cust}"`;
+      pair = `Relative importance to the customer`;
+      body = `This value weights every relationship for this customer need. Raising it gives all linked technical features more priority; lowering it reduces their priority.`;
+    } else if (info.kind === 'cust-comp') {
+      tag = 'Section 5 · Right wing · Competitor';
+      title = `Product ${info.comp} on "${info.cust}"`;
+      pair = `${info.cust}  vs.  Product ${info.comp}`;
+      body = `How well does competing product ${info.comp} meet this customer need? This benchmark updates visually but does not change the technical-priority totals.`;
+    } else if (info.kind === 'tech-comp') {
+      tag = 'Section 6 · Floor · Competitor';
+      title = `Product ${info.comp} on "${info.tech}"`;
+      pair = `${info.tech}  vs.  Product ${info.comp}`;
+      body = `How well does competing product ${info.comp} deliver on this technical feature? This benchmark updates visually and helps set realistic target values.`;
+    } else {
+      tag = '—'; title = '—'; pair = ''; body = '';
+    }
+    const editNote = meta.changed ? `<p style="margin-top:0.5rem;"><strong>Updated:</strong> ${meta.oldValue} → ${v}. Click again to continue cycling.</p>` : `<p style="margin-top:0.5rem;color:var(--muted);">Click to edit · Shift-click to inspect only.</p>`;
+    readout.innerHTML = `
+      <div class="readout-tag">${tag}</div>
+      <h4>${title}</h4>
+      ${pair ? `<div class="readout-pair">${pair}</div>` : ''}
+      <div class="readout-num">${v}<small>${meaning}</small></div>
+      <p>${body}</p>
+      ${editNote}
+      ${liveSummaryHtml()}
+    `;
+  }
+
+  // Click any score to cycle it: 0 → 1 → 3 → 5 → 0. Shift-click only inspects.
+  svg.addEventListener('click', (e) => {
+    const g = e.target.closest('g.cell');
+    if (!g) return;
+    document.querySelectorAll('#hoqCanvas g.cell.active').forEach(el => el.classList.remove('active'));
+    g.classList.add('active');
+    try {
+      let info = JSON.parse(g.dataset.info);
+      const oldValue = Number(info.value);
+      if (!e.shiftKey) {
+        const newValue = nextScore(oldValue);
+        info = writeValue(info, newValue);
+        g.dataset.info = JSON.stringify(info);
+        setCellVisual(g, newValue);
+        buildReadout(info, { changed: true, oldValue });
+      } else {
+        buildReadout(info, { changed: false });
+      }
+    } catch (err) {}
+  });
+
+  show(0);
+})();
+</script>
+
+</body>
+</html>
